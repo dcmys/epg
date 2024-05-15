@@ -2,46 +2,47 @@ name: Docker Multiarch Image CI
 
 on:
   push:
-  pull_request:
+    branches:
+      - "main"
 
 jobs:
-
   build-docker-images:
     runs-on: ubuntu-latest
 
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}
-      PLATFORMS: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
+      PLATFORMS: linux/amd64,linux/arm64
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
       - name: List available platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
       - name: Log into registry ${{ env.REGISTRY }}
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       -
         name: Build and push on tag
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           context: .
           platforms: ${{ env.PLATFORMS }}
-          push: ${{ github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/') }}
+          push: true
+          visibility: public
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
